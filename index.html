@@ -1,0 +1,2335 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sanutice — Vzdělávání v make-upu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@200;300;400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ivory:#f7f4ee;
+  --milk:#f0ece3;
+  --taupe:#3a3430;
+  --taupe-light:#6b5f58;
+  --rose:#c4a09a;
+  --rose-muted:#d4b8b3;
+  --espresso:#2a1e18;
+  --bronze:#a07850;
+  --bronze-light:#c9a878;
+  --warm-grey:#9a9088;
+  --paper:#ede9e0;
+  --dark:#1a1210;
+  --dark-surface:#221a15;
+  --cream-text:#e8e0d4;
+}
+html{scroll-behavior:smooth;font-size:16px}
+body{
+  background:var(--ivory);
+  color:var(--taupe);
+  font-family:'Jost',sans-serif;
+  font-weight:300;
+  overflow-x:hidden;
+  cursor:default;
+}
+
+/* CUSTOM CURSOR */
+.cursor{position:fixed;width:8px;height:8px;background:var(--bronze);border-radius:50%;pointer-events:none;z-index:9999;transition:transform .3s ease,opacity .3s ease;mix-blend-mode:multiply}
+.cursor-ring{position:fixed;width:32px;height:32px;border:1px solid var(--bronze);border-radius:50%;pointer-events:none;z-index:9998;transition:transform .15s ease,opacity .3s ease;transform:translate(-12px,-12px)}
+
+/* NOISE TEXTURE OVERLAY */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  opacity:.025;
+  z-index:0;
+  pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat:repeat;
+  background-size:128px 128px;
+}
+
+/* NAVIGATION */
+.nav{
+  position:fixed;
+  left:0;
+  top:0;
+  height:100vh;
+  width:52px;
+  z-index:100;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  padding:0 0 0 18px;
+}
+.nav-item{
+  writing-mode:vertical-rl;
+  text-orientation:mixed;
+  transform:rotate(180deg);
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:10px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--warm-grey);
+  padding:14px 0;
+  cursor:pointer;
+  transition:color .4s ease,letter-spacing .4s ease;
+  position:relative;
+  text-decoration:none;
+  display:block;
+}
+.nav-item::after{
+  content:'';
+  position:absolute;
+  bottom:0;
+  left:50%;
+  transform:translateX(-50%);
+  width:0;
+  height:1px;
+  background:var(--bronze);
+  transition:width .5s ease;
+}
+.nav-item:hover,.nav-item.active{color:var(--bronze);letter-spacing:.22em}
+.nav-item.active::after{width:100%}
+
+/* LOGO */
+.logo{
+  position:fixed;
+  top:32px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:101;
+  font-family:'Cormorant Garamond',serif;
+  font-weight:300;
+  font-size:22px;
+  letter-spacing:.35em;
+  color:var(--taupe);
+  text-transform:lowercase;
+}
+.logo span{color:var(--bronze)}
+
+/* MOBILE MENU TOGGLE */
+.menu-toggle{display:none;position:fixed;top:24px;right:24px;z-index:200;background:none;border:none;cursor:pointer;padding:8px;flex-direction:column;gap:5px}
+.menu-toggle span{display:block;width:24px;height:1px;background:var(--taupe);transition:all .4s ease}
+
+/* MOBILE NAV OVERLAY */
+.mobile-nav{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:var(--espresso);
+  z-index:150;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:2.5rem;
+  opacity:0;
+  transition:opacity .5s ease;
+}
+.mobile-nav.open{opacity:1}
+.mobile-nav a{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(2rem,6vw,3.5rem);
+  font-weight:300;
+  color:var(--cream-text);
+  text-decoration:none;
+  letter-spacing:.1em;
+  transition:color .3s;
+}
+.mobile-nav a:hover{color:var(--bronze-light)}
+
+/* MAIN LAYOUT */
+main{margin-left:52px}
+
+/* ═══════════════════════════════════
+   HERO
+═══════════════════════════════════ */
+#hero{
+  min-height:100vh;
+  position:relative;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  overflow:hidden;
+  background:var(--milk);
+}
+.hero-left{
+  padding:clamp(5rem,10vw,9rem) clamp(2rem,4vw,5rem) clamp(3rem,6vw,5rem) clamp(3rem,5vw,6rem);
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  position:relative;
+  z-index:2;
+}
+.hero-meta{
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:10px;
+  letter-spacing:.25em;
+  text-transform:uppercase;
+  color:var(--warm-grey);
+  display:flex;
+  gap:2rem;
+}
+.hero-title{
+  font-family:'Cormorant Garamond',serif;
+  font-weight:300;
+  font-size:clamp(3.5rem,7vw,7rem);
+  line-height:.95;
+  letter-spacing:-.01em;
+  color:var(--taupe);
+  margin:2rem 0 1rem;
+}
+.hero-title em{
+  font-style:italic;
+  color:var(--bronze);
+  display:block;
+}
+.hero-subtitle{
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:13px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--taupe-light);
+  margin-bottom:3rem;
+  line-height:2;
+}
+.hero-anno{
+  display:flex;
+  flex-direction:column;
+  gap:.5rem;
+}
+.hero-anno-line{
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:11px;
+  letter-spacing:.1em;
+  color:var(--warm-grey);
+}
+.hero-anno-line::before{content:'—';color:var(--bronze)}
+
+/* FLOATING CTA CARD */
+.hero-cta-card{
+  margin-top:3rem;
+  border:1px solid rgba(160,120,80,.3);
+  padding:1.5rem 2rem;
+  background:rgba(247,244,238,.7);
+  backdrop-filter:blur(8px);
+  cursor:pointer;
+  transition:all .5s ease;
+  position:relative;
+  overflow:hidden;
+}
+.hero-cta-card::before{
+  content:'';
+  position:absolute;
+  bottom:0;left:0;right:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--bronze),transparent);
+  transform:scaleX(0);
+  transition:transform .6s ease;
+}
+.hero-cta-card:hover::before{transform:scaleX(1)}
+.hero-cta-card:hover{background:rgba(247,244,238,.95);transform:translateY(-3px)}
+.cta-label{
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:10px;
+  letter-spacing:.25em;
+  text-transform:uppercase;
+  color:var(--warm-grey);
+  margin-bottom:.75rem;
+}
+.cta-text{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.5rem;
+  font-weight:400;
+  color:var(--taupe);
+  line-height:1.2;
+}
+.cta-arrow{
+  margin-top:1rem;
+  display:flex;
+  align-items:center;
+  gap:.75rem;
+  font-family:'Jost',sans-serif;
+  font-size:10px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:var(--bronze);
+}
+.cta-arrow::after{
+  content:'';
+  display:block;
+  width:40px;height:1px;
+  background:var(--bronze);
+  transition:width .4s ease;
+}
+.hero-cta-card:hover .cta-arrow::after{width:70px}
+
+/* HERO RIGHT */
+.hero-right{
+  position:relative;
+  overflow:hidden;
+}
+.hero-img-main{
+  position:absolute;
+  inset:0;
+  background:linear-gradient(135deg,#d4c4b8 0%,#b8a898 40%,#9a8878 100%);
+  overflow:hidden;
+}
+.hero-img-main img{
+  width:100%;height:100%;
+  object-fit:cover;
+  opacity:.8;
+  transition:transform 8s ease;
+}
+.hero-img-main:hover img{transform:scale(1.03)}
+
+.hero-float-1{
+  position:absolute;
+  top:12%;left:-5%;
+  width:42%;
+  background:var(--paper);
+  padding:.5rem;
+  box-shadow:0 20px 60px rgba(42,30,24,.08);
+  z-index:5;
+  animation:floatUp 6s ease-in-out infinite;
+}
+.hero-float-2{
+  position:absolute;
+  bottom:15%;right:-3%;
+  width:38%;
+  background:var(--paper);
+  padding:.5rem;
+  z-index:5;
+  animation:floatUp 8s ease-in-out infinite .5s;
+}
+.hero-float-img{
+  width:100%;
+  aspect-ratio:4/3;
+  object-fit:cover;
+  background:linear-gradient(135deg,#c4b4a8,#a89888);
+}
+.hero-float-caption{
+  padding:.5rem .25rem;
+  font-family:'Jost',sans-serif;
+  font-size:9px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:var(--warm-grey);
+}
+
+.hero-overlay-text{
+  position:absolute;
+  bottom:8%;
+  left:5%;
+  z-index:5;
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(3rem,6vw,6rem);
+  font-weight:300;
+  color:rgba(42,30,24,.06);
+  letter-spacing:.05em;
+  pointer-events:none;
+  line-height:1;
+}
+
+@keyframes floatUp{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-12px)}
+}
+
+/* ═══════════════════════════════════
+   SECTION UTILITY
+═══════════════════════════════════ */
+section{position:relative;z-index:1}
+.section-label{
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:10px;
+  letter-spacing:.28em;
+  text-transform:uppercase;
+  color:var(--warm-grey);
+}
+.section-num{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(5rem,10vw,12rem);
+  font-weight:300;
+  color:rgba(58,52,48,.05);
+  line-height:1;
+  pointer-events:none;
+  user-select:none;
+}
+
+/* ═══════════════════════════════════
+   SECTION 1 — KURZY LÍČENÍ
+═══════════════════════════════════ */
+#kurzy{
+  padding:clamp(5rem,10vw,10rem) clamp(2rem,4vw,5rem);
+  background:var(--ivory);
+}
+.kurzy-header{
+  display:grid;
+  grid-template-columns:1fr 3fr;
+  gap:3rem;
+  margin-bottom:5rem;
+  align-items:end;
+}
+.kurzy-header-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(2.5rem,5vw,4.5rem);
+  font-weight:300;
+  line-height:1.05;
+  color:var(--taupe);
+}
+.kurzy-header-title em{font-style:italic;color:var(--bronze)}
+.kurzy-intro{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.25rem;
+  font-weight:300;
+  color:var(--taupe-light);
+  line-height:1.8;
+  max-width:520px;
+  margin-left:auto;
+}
+
+/* GALLERY GRID */
+.kurzy-grid{
+  display:grid;
+  grid-template-columns:repeat(12,1fr);
+  grid-template-rows:auto;
+  gap:1.5rem;
+}
+.k-block{
+  overflow:hidden;
+  cursor:pointer;
+  position:relative;
+}
+.k-block-1{grid-column:1/5;grid-row:1/2}
+.k-block-2{grid-column:5/9;grid-row:1/3}
+.k-block-3{grid-column:9/13;grid-row:1/2}
+.k-block-4{grid-column:1/5;grid-row:2/3}
+.k-block-5{grid-column:9/13;grid-row:2/3}
+.k-block-6{grid-column:1/7;grid-row:3/4}
+.k-block-7{grid-column:7/13;grid-row:3/4}
+
+.k-img{
+  width:100%;
+  overflow:hidden;
+  position:relative;
+}
+.k-img-inner{
+  width:100%;
+  transition:transform .8s cubic-bezier(.25,.46,.45,.94);
+  display:block;
+}
+.k-block:hover .k-img-inner{transform:scale(1.05)}
+
+.k-content{padding:1.5rem 0 .5rem}
+.k-type{
+  font-family:'Jost',sans-serif;
+  font-size:9px;
+  letter-spacing:.25em;
+  text-transform:uppercase;
+  color:var(--bronze);
+  margin-bottom:.75rem;
+  display:block;
+}
+.k-name{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(1.2rem,2.5vw,1.8rem);
+  font-weight:400;
+  color:var(--taupe);
+  line-height:1.2;
+  margin-bottom:.75rem;
+}
+.k-desc{
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:12px;
+  letter-spacing:.04em;
+  color:var(--warm-grey);
+  line-height:1.8;
+}
+.k-link{
+  display:inline-flex;
+  align-items:center;
+  gap:.5rem;
+  margin-top:1rem;
+  font-family:'Jost',sans-serif;
+  font-size:10px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--bronze);
+  text-decoration:none;
+  transition:gap .3s;
+  cursor:pointer;
+}
+.k-link:hover{gap:1rem}
+.k-link::after{content:'→'}
+
+/* Makeup placeholders with CSS art */
+.makeup-bg-1{background:linear-gradient(135deg,#e8d8c8 0%,#c8b4a0 50%,#b0988a 100%)}
+.makeup-bg-2{background:linear-gradient(160deg,#d4c0b0 0%,#b89880 40%,#9a7860 100%)}
+.makeup-bg-3{background:linear-gradient(120deg,#e0cdc0 0%,#c4aca0 60%,#a89090 100%)}
+.makeup-bg-4{background:linear-gradient(145deg,#d8c8bc 0%,#bca898 50%,#a08878 100%)}
+.makeup-bg-5{background:linear-gradient(155deg,#dcc8b8 0%,#c0a890 45%,#a48878 100%)}
+.makeup-bg-6{background:linear-gradient(130deg,#e4d0c0 0%,#c8b0a0 55%,#ac9080 100%)}
+.makeup-bg-7{background:linear-gradient(140deg,#dac4b4 0%,#bea48e 50%,#a28070 100%)}
+
+/* ═══════════════════════════════════
+   SECTION 2 — ATELIÉR & VÝUKA (horizontal scroll)
+═══════════════════════════════════ */
+#atelier{
+  padding:clamp(5rem,10vw,10rem) 0;
+  background:var(--paper);
+  overflow:hidden;
+}
+.atelier-header{
+  padding:0 clamp(2rem,4vw,5rem) 4rem;
+  display:flex;
+  justify-content:space-between;
+  align-items:end;
+}
+.atelier-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(2rem,4vw,4rem);
+  font-weight:300;
+  color:var(--taupe);
+}
+.atelier-title em{font-style:italic;color:var(--bronze)}
+.atelier-count{
+  font-family:'Cormorant Garamond',serif;
+  font-size:5rem;
+  font-weight:300;
+  color:rgba(58,52,48,.08);
+}
+
+.atelier-scroll{
+  display:flex;
+  gap:2rem;
+  padding:0 clamp(2rem,4vw,5rem);
+  overflow-x:auto;
+  scrollbar-width:none;
+  cursor:grab;
+}
+.atelier-scroll:active{cursor:grabbing}
+.atelier-scroll::-webkit-scrollbar{display:none}
+
+.atelier-card{
+  flex:0 0 clamp(280px,30vw,420px);
+  position:relative;
+}
+.atelier-card-img{
+  width:100%;
+  aspect-ratio:3/4;
+  position:relative;
+  overflow:hidden;
+}
+.atelier-card-img-inner{
+  position:absolute;inset:0;
+  transition:transform .8s ease;
+}
+.atelier-card:hover .atelier-card-img-inner{transform:scale(1.04)}
+.atelier-card-caption{
+  padding:1.5rem 0 .5rem;
+}
+.atelier-card-num{
+  font-family:'Cormorant Garamond',serif;
+  font-size:3rem;
+  font-weight:300;
+  color:rgba(58,52,48,.1);
+  line-height:1;
+  margin-bottom:.5rem;
+}
+.atelier-card-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.4rem;
+  font-weight:400;
+  color:var(--taupe);
+  margin-bottom:.5rem;
+}
+.atelier-card-text{
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:12px;
+  color:var(--warm-grey);
+  line-height:1.9;
+  letter-spacing:.04em;
+}
+.atelier-card-line{
+  width:40px;height:1px;
+  background:var(--bronze);
+  margin:1rem 0;
+  transition:width .4s;
+}
+.atelier-card:hover .atelier-card-line{width:80px}
+
+/* ═══════════════════════════════════
+   SECTION 3 — TECHNIKY & KREATIVITA
+═══════════════════════════════════ */
+#techniky{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  background:var(--ivory);
+}
+.techniky-left{
+  position:sticky;
+  top:0;
+  height:100vh;
+  overflow:hidden;
+}
+.techniky-left-img{
+  position:absolute;inset:0;
+  background:linear-gradient(160deg,#c4b4a4 0%,#a89484 40%,#8c7464 100%);
+  transition:opacity .8s ease;
+}
+.techniky-right{
+  padding:clamp(4rem,8vw,8rem) clamp(2rem,4vw,5rem);
+  display:flex;
+  flex-direction:column;
+  gap:0;
+}
+.tech-divider{
+  height:1px;
+  background:rgba(58,52,48,.12);
+  margin:2.5rem 0;
+}
+.tech-module{
+  position:relative;
+  padding:2rem 0;
+  cursor:pointer;
+  transition:padding .4s ease;
+}
+.tech-module:hover{padding-left:1.5rem}
+.tech-module-num{
+  font-family:'Cormorant Garamond',serif;
+  font-size:.9rem;
+  font-weight:400;
+  color:var(--bronze);
+  margin-bottom:.75rem;
+  display:block;
+}
+.tech-module-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(1.4rem,2.5vw,2rem);
+  font-weight:400;
+  color:var(--taupe);
+  margin-bottom:1rem;
+  line-height:1.2;
+}
+.tech-module-text{
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:13px;
+  color:var(--warm-grey);
+  line-height:2;
+  max-width:420px;
+  height:0;
+  overflow:hidden;
+  opacity:0;
+  transition:height .5s ease,opacity .5s ease;
+}
+.tech-module:hover .tech-module-text,
+.tech-module.open .tech-module-text{
+  height:auto;
+  opacity:1;
+  margin-top:.75rem;
+}
+.tech-module-bar{
+  position:absolute;
+  left:0;top:0;bottom:0;
+  width:2px;
+  background:var(--bronze);
+  transform:scaleY(0);
+  transition:transform .4s ease;
+  transform-origin:top;
+}
+.tech-module:hover .tech-module-bar{transform:scaleY(1)}
+
+/* ═══════════════════════════════════
+   SECTION 4 — VIZUÁLNÍ LABORATOŘ (dark)
+═══════════════════════════════════ */
+#laborator{
+  background:var(--dark);
+  padding:clamp(5rem,10vw,10rem) clamp(2rem,4vw,5rem);
+  position:relative;
+  overflow:hidden;
+}
+#laborator::before{
+  content:'';
+  position:absolute;
+  top:-20%;right:-10%;
+  width:600px;height:600px;
+  background:radial-gradient(circle,rgba(160,120,80,.08) 0%,transparent 70%);
+  pointer-events:none;
+}
+.lab-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:end;
+  margin-bottom:5rem;
+}
+.lab-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(2.5rem,5vw,5rem);
+  font-weight:300;
+  color:var(--cream-text);
+  line-height:1.05;
+}
+.lab-title em{font-style:italic;color:var(--bronze-light)}
+.lab-sub{
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:11px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:rgba(232,224,212,.4);
+  max-width:240px;
+  text-align:right;
+  line-height:2;
+}
+
+.lab-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  grid-template-rows:repeat(2,auto);
+  gap:1rem;
+}
+.lab-block{
+  position:relative;
+  overflow:hidden;
+  cursor:pointer;
+}
+.lab-block-1{grid-column:1/2;grid-row:1/2;aspect-ratio:1}
+.lab-block-2{grid-column:2/4;grid-row:1/2;aspect-ratio:2/1}
+.lab-block-3{grid-column:1/3;grid-row:2/3;aspect-ratio:2/1}
+.lab-block-4{grid-column:3/4;grid-row:2/3;aspect-ratio:1}
+
+.lab-block-inner{
+  position:absolute;inset:0;
+  transition:transform .8s ease;
+}
+.lab-block:hover .lab-block-inner{transform:scale(1.04)}
+
+.lab-dark-1{background:linear-gradient(135deg,#3a2a20 0%,#1a1210 100%)}
+.lab-dark-2{background:linear-gradient(120deg,#2a1e14 0%,#180e0a 100%)}
+.lab-dark-3{background:linear-gradient(150deg,#221814 0%,#120c08 100%)}
+.lab-dark-4{background:linear-gradient(140deg,#301e14 0%,#1a0e08 100%)}
+
+.lab-block-overlay{
+  position:absolute;inset:0;z-index:2;
+  padding:2rem;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  background:linear-gradient(to top,rgba(10,6,4,.7) 0%,transparent 60%);
+}
+.lab-block-label{
+  font-family:'Jost',sans-serif;
+  font-size:9px;
+  letter-spacing:.25em;
+  text-transform:uppercase;
+  color:var(--bronze-light);
+  margin-bottom:.5rem;
+}
+.lab-block-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(1.1rem,2vw,1.6rem);
+  font-weight:300;
+  color:var(--cream-text);
+  line-height:1.2;
+}
+
+/* Bronze accent glows */
+.lab-accent{
+  position:absolute;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(160,120,80,.15),transparent 70%);
+  pointer-events:none;
+}
+
+/* ═══════════════════════════════════
+   SECTION 5 — MAKE-UP ESTETIKA
+═══════════════════════════════════ */
+#estetika{
+  padding:clamp(5rem,12vw,14rem) clamp(2rem,4vw,5rem);
+  background:var(--milk);
+  position:relative;
+}
+.estetika-bignum{
+  position:absolute;
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(10rem,20vw,22rem);
+  font-weight:300;
+  color:rgba(58,52,48,.04);
+  line-height:1;
+  pointer-events:none;
+  top:-2rem;right:-1rem;
+  letter-spacing:-.05em;
+}
+.estetika-content{
+  display:grid;
+  grid-template-columns:1fr 2fr 1fr;
+  gap:4rem;
+  align-items:center;
+}
+.estetika-label-col{
+  display:flex;
+  flex-direction:column;
+  gap:3rem;
+}
+.estetika-v-label{
+  writing-mode:vertical-rl;
+  text-orientation:mixed;
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:10px;
+  letter-spacing:.25em;
+  text-transform:uppercase;
+  color:var(--warm-grey);
+}
+.estetika-center{
+  display:flex;
+  flex-direction:column;
+  gap:3rem;
+}
+.estetika-quote{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(2rem,4vw,3.5rem);
+  font-weight:300;
+  font-style:italic;
+  line-height:1.3;
+  color:var(--taupe);
+}
+.estetika-quote span{color:var(--bronze)}
+.estetika-img-strip{
+  width:100%;
+  aspect-ratio:3/1;
+  overflow:hidden;
+  background:linear-gradient(90deg,#d4c0b0,#b89880,#9a7860);
+  position:relative;
+}
+.estetika-img-strip img{
+  width:100%;height:100%;object-fit:cover;opacity:.6
+}
+.estetika-body{
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:13px;
+  line-height:2.2;
+  color:var(--taupe-light);
+  letter-spacing:.04em;
+}
+.estetika-right{
+  display:flex;
+  flex-direction:column;
+  gap:2.5rem;
+  align-items:flex-start;
+}
+.estetika-stat{
+  border-left:1px solid var(--rose-muted);
+  padding-left:1.5rem;
+}
+.estetika-stat-num{
+  font-family:'Cormorant Garamond',serif;
+  font-size:3rem;
+  font-weight:300;
+  color:var(--bronze);
+  line-height:1;
+}
+.estetika-stat-label{
+  font-family:'Jost',sans-serif;
+  font-size:10px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--warm-grey);
+  margin-top:.25rem;
+}
+
+/* ═══════════════════════════════════
+   SECTION 6 — STUDIO MODULY (Bento)
+═══════════════════════════════════ */
+#moduly{
+  padding:clamp(5rem,10vw,10rem) clamp(2rem,4vw,5rem);
+  background:var(--paper);
+}
+.moduly-header{
+  margin-bottom:4rem;
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:3rem;
+  align-items:end;
+}
+.moduly-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(2rem,4vw,4rem);
+  font-weight:300;
+  color:var(--taupe);
+}
+.moduly-title em{font-style:italic;color:var(--bronze)}
+
+.bento{
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  grid-auto-rows:minmax(180px,auto);
+  gap:1rem;
+}
+.b{
+  overflow:hidden;
+  cursor:pointer;
+  transition:transform .4s ease,box-shadow .4s ease;
+  position:relative;
+  background:var(--ivory);
+  padding:2rem;
+}
+.b:hover{transform:translateY(-4px);box-shadow:0 20px 60px rgba(42,30,24,.08)}
+.b-1{grid-column:1/3;grid-row:1/2}
+.b-2{grid-column:3/5;grid-row:1/3;background:var(--taupe)}
+.b-3{grid-column:5/7;grid-row:1/2}
+.b-4{grid-column:1/2;grid-row:2/3;background:var(--bronze)}
+.b-5{grid-column:2/3;grid-row:2/3}
+.b-6{grid-column:5/7;grid-row:2/4;background:var(--dark)}
+.b-7{grid-column:1/4;grid-row:3/4}
+.b-8{grid-column:4/6;grid-row:3/4;background:var(--milk)}
+.b-label{
+  font-family:'Jost',sans-serif;
+  font-size:9px;
+  letter-spacing:.22em;
+  text-transform:uppercase;
+  color:var(--warm-grey);
+  margin-bottom:1rem;
+  display:block;
+}
+.b-2 .b-label,.b-6 .b-label{color:rgba(232,224,212,.4)}
+.b-4 .b-label{color:rgba(232,224,212,.5)}
+.b-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(1.2rem,2vw,1.8rem);
+  font-weight:400;
+  color:var(--taupe);
+  line-height:1.2;
+}
+.b-2 .b-title,.b-6 .b-title{color:var(--cream-text)}
+.b-4 .b-title{color:var(--ivory)}
+.b-body{
+  margin-top:.75rem;
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:11px;
+  color:var(--warm-grey);
+  line-height:1.9;
+}
+.b-2 .b-body{color:rgba(232,224,212,.5)}
+.b-6 .b-body{color:rgba(232,224,212,.4)}
+.b-4 .b-body{color:rgba(232,224,212,.6)}
+.b-num{
+  position:absolute;
+  bottom:1.5rem;right:2rem;
+  font-family:'Cormorant Garamond',serif;
+  font-size:4rem;
+  font-weight:300;
+  opacity:.08;
+  color:inherit;
+  line-height:1;
+}
+.b-2 .b-num,.b-6 .b-num{color:#fff}
+.b-4 .b-num{color:#fff}
+
+/* ═══════════════════════════════════
+   SECTION 7 — FAQ (floating sheets)
+═══════════════════════════════════ */
+#faq{
+  padding:clamp(5rem,10vw,10rem) clamp(2rem,4vw,5rem);
+  background:var(--ivory);
+}
+.faq-header{
+  text-align:center;
+  margin-bottom:5rem;
+}
+.faq-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(2rem,5vw,4.5rem);
+  font-weight:300;
+  color:var(--taupe);
+  margin-top:.5rem;
+}
+.faq-title em{font-style:italic;color:var(--bronze)}
+
+.faq-sheets{
+  display:flex;
+  flex-direction:column;
+  gap:0;
+  max-width:760px;
+  margin:0 auto;
+}
+.faq-sheet{
+  border:1px solid rgba(58,52,48,.1);
+  background:var(--milk);
+  margin-bottom:-.5rem;
+  transition:all .5s cubic-bezier(.25,.46,.45,.94);
+  cursor:pointer;
+  position:relative;
+  z-index:1;
+}
+.faq-sheet.open{
+  z-index:10;
+  box-shadow:0 20px 60px rgba(42,30,24,.08);
+  transform:translateY(-4px);
+  margin-bottom:.5rem;
+}
+.faq-sheet-q{
+  padding:1.75rem 2.5rem;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:2rem;
+}
+.faq-sheet-qtext{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.2rem;
+  font-weight:400;
+  color:var(--taupe);
+  line-height:1.4;
+}
+.faq-sheet-icon{
+  width:24px;height:24px;
+  border:1px solid var(--rose-muted);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  transition:transform .4s ease,background .4s ease;
+  color:var(--bronze);
+  font-size:14px;
+}
+.faq-sheet.open .faq-sheet-icon{transform:rotate(45deg);background:var(--bronze);color:var(--ivory)}
+.faq-sheet-a{
+  max-height:0;
+  overflow:hidden;
+  transition:max-height .5s cubic-bezier(.25,.46,.45,.94);
+}
+.faq-sheet.open .faq-sheet-a{max-height:400px}
+.faq-sheet-ainner{
+  padding:0 2.5rem 2rem;
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:13px;
+  line-height:2.1;
+  color:var(--taupe-light);
+  border-top:1px solid rgba(58,52,48,.07);
+  padding-top:1.25rem;
+  margin-top:0;
+}
+
+/* ═══════════════════════════════════
+   SECTION 8 — KONTAKT
+═══════════════════════════════════ */
+#kontakt{
+  padding:clamp(5rem,10vw,10rem) clamp(2rem,4vw,5rem);
+  background:var(--milk);
+  display:grid;
+  grid-template-columns:1fr 1fr 1.5fr;
+  gap:4rem;
+  min-height:90vh;
+  align-items:start;
+}
+.kontakt-left{
+  padding-top:3rem;
+}
+.kontakt-big-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(3rem,6vw,7rem);
+  font-weight:300;
+  color:var(--taupe);
+  line-height:.95;
+  writing-mode:vertical-rl;
+  text-orientation:mixed;
+  transform:rotate(180deg);
+  height:min(70vh,600px);
+  letter-spacing:.02em;
+}
+.kontakt-big-title em{font-style:italic;color:var(--bronze)}
+.kontakt-meta{
+  display:flex;
+  flex-direction:column;
+  gap:2.5rem;
+  padding-top:3rem;
+}
+.kontakt-meta-block{}
+.kontakt-meta-label{
+  font-family:'Jost',sans-serif;
+  font-size:9px;
+  letter-spacing:.25em;
+  text-transform:uppercase;
+  color:var(--bronze);
+  margin-bottom:.75rem;
+}
+.kontakt-meta-val{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.1rem;
+  font-weight:400;
+  color:var(--taupe);
+  line-height:1.6;
+}
+.kontakt-meta-sub{
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:11px;
+  color:var(--warm-grey);
+  letter-spacing:.05em;
+  margin-top:.25rem;
+}
+
+/* FORM */
+.kontakt-form{
+  padding-top:3rem;
+}
+.form-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.8rem;
+  font-weight:400;
+  color:var(--taupe);
+  margin-bottom:2.5rem;
+  line-height:1.2;
+}
+.form-title em{font-style:italic;color:var(--bronze)}
+.form-row{
+  margin-bottom:1.5rem;
+  position:relative;
+}
+.form-label{
+  display:block;
+  font-family:'Jost',sans-serif;
+  font-size:9px;
+  letter-spacing:.22em;
+  text-transform:uppercase;
+  color:var(--warm-grey);
+  margin-bottom:.5rem;
+}
+.form-input,.form-select,.form-textarea{
+  width:100%;
+  background:transparent;
+  border:none;
+  border-bottom:1px solid rgba(58,52,48,.2);
+  padding:.75rem 0;
+  font-family:'Jost',sans-serif;
+  font-weight:300;
+  font-size:14px;
+  color:var(--taupe);
+  outline:none;
+  transition:border-color .4s ease;
+  appearance:none;
+}
+.form-input::placeholder,.form-textarea::placeholder{color:rgba(58,52,48,.3)}
+.form-input:focus,.form-select:focus,.form-textarea:focus{
+  border-bottom-color:var(--bronze);
+}
+.form-textarea{
+  resize:none;
+  height:100px;
+  line-height:1.8;
+}
+.form-select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239a9088' stroke-width='1' fill='none'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right .5rem center;
+  cursor:pointer;
+}
+.form-submit{
+  margin-top:2.5rem;
+  display:inline-flex;
+  align-items:center;
+  gap:1.5rem;
+  background:none;
+  border:none;
+  cursor:pointer;
+  padding:0;
+  font-family:'Jost',sans-serif;
+  font-weight:300;
+  font-size:11px;
+  letter-spacing:.22em;
+  text-transform:uppercase;
+  color:var(--taupe);
+  transition:color .4s;
+  position:relative;
+}
+.form-submit::after{
+  content:'';
+  position:absolute;
+  bottom:-4px;left:0;right:0;
+  height:1px;
+  background:var(--bronze);
+  transform:scaleX(0);
+  transform-origin:left;
+  transition:transform .5s ease;
+}
+.form-submit:hover{color:var(--bronze)}
+.form-submit:hover::after{transform:scaleX(1)}
+.form-submit-arrow{
+  width:40px;height:1px;background:var(--taupe);
+  transition:width .4s,background .4s;
+  display:inline-block;
+}
+.form-submit:hover .form-submit-arrow{width:60px;background:var(--bronze)}
+
+/* ═══════════════════════════════════
+   FOOTER — editorial signature
+═══════════════════════════════════ */
+footer{
+  background:var(--espresso);
+  padding:2rem clamp(2rem,4vw,5rem);
+  margin-left:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:1rem;
+}
+.footer-logo{
+  font-family:'Cormorant Garamond',serif;
+  font-weight:300;
+  font-size:18px;
+  letter-spacing:.3em;
+  color:var(--cream-text);
+  text-transform:lowercase;
+}
+.footer-logo span{color:var(--bronze-light)}
+.footer-links{
+  display:flex;
+  gap:2rem;
+  align-items:center;
+}
+.footer-link{
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:10px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:rgba(232,224,212,.4);
+  cursor:pointer;
+  transition:color .3s;
+  background:none;border:none;
+}
+.footer-link:hover{color:var(--bronze-light)}
+.footer-copy{
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:10px;
+  letter-spacing:.1em;
+  color:rgba(232,224,212,.25);
+}
+
+/* ═══════════════════════════════════
+   MODALS
+═══════════════════════════════════ */
+.modal-backdrop{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(26,18,16,.85);
+  backdrop-filter:blur(12px);
+  z-index:500;
+  opacity:0;
+  transition:opacity .5s ease;
+}
+.modal-backdrop.open{display:flex;opacity:1}
+.modal-panel{
+  background:var(--ivory);
+  width:min(760px,90vw);
+  max-height:85vh;
+  margin:auto;
+  overflow-y:auto;
+  scrollbar-width:thin;
+  scrollbar-color:var(--rose-muted) transparent;
+  padding:4rem;
+  position:relative;
+  animation:slideUp .5s ease;
+}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-close{
+  position:absolute;
+  top:2rem;right:2rem;
+  background:none;border:none;cursor:pointer;
+  font-family:'Jost',sans-serif;
+  font-size:10px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:var(--warm-grey);
+  transition:color .3s;
+  display:flex;align-items:center;gap:.5rem;
+}
+.modal-close:hover{color:var(--taupe)}
+.modal-progress{
+  position:sticky;
+  top:0;left:0;
+  height:2px;
+  background:rgba(58,52,48,.1);
+  margin:-4rem -4rem 3rem;
+}
+.modal-progress-bar{
+  height:100%;
+  background:var(--bronze);
+  width:0%;
+  transition:width .1s linear;
+}
+.modal-doc-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:2.5rem;
+  font-weight:300;
+  color:var(--taupe);
+  margin-bottom:.5rem;
+}
+.modal-doc-subtitle{
+  font-family:'Jost',sans-serif;
+  font-size:10px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:var(--warm-grey);
+  margin-bottom:3rem;
+  padding-bottom:2rem;
+  border-bottom:1px solid rgba(58,52,48,.1);
+}
+.modal-section{margin-bottom:2.5rem}
+.modal-h2{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.4rem;
+  font-weight:400;
+  color:var(--taupe);
+  margin-bottom:1rem;
+  padding-top:1.5rem;
+}
+.modal-h3{
+  font-family:'Jost',sans-serif;
+  font-weight:300;
+  font-size:11px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--bronze);
+  margin-bottom:.75rem;
+  margin-top:1.5rem;
+}
+.modal-p{
+  font-family:'Jost',sans-serif;
+  font-weight:200;
+  font-size:13px;
+  line-height:2.1;
+  color:var(--taupe-light);
+  margin-bottom:1rem;
+}
+
+/* ═══════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════ */
+@media(max-width:900px){
+  .nav{display:none}
+  main{margin-left:0}
+  .menu-toggle{display:flex}
+  .mobile-nav{display:flex}
+
+  #hero{grid-template-columns:1fr;min-height:auto}
+  .hero-right{min-height:60vw;position:relative}
+  .hero-float-1,.hero-float-2{display:none}
+
+  .kurzy-header{grid-template-columns:1fr}
+  .kurzy-grid{grid-template-columns:1fr 1fr}
+  .k-block-1,.k-block-2,.k-block-3,.k-block-4,.k-block-5,.k-block-6,.k-block-7{
+    grid-column:auto;grid-row:auto;
+  }
+
+  #techniky{grid-template-columns:1fr;min-height:auto}
+  .techniky-left{position:relative;height:50vw;display:block}
+
+  .lab-grid{grid-template-columns:1fr 1fr}
+  .lab-block-1,.lab-block-2,.lab-block-3,.lab-block-4{
+    grid-column:auto;grid-row:auto;aspect-ratio:4/3;
+  }
+
+  .estetika-content{grid-template-columns:1fr}
+  .estetika-label-col{display:none}
+
+  #kontakt{grid-template-columns:1fr;min-height:auto}
+  .kontakt-big-title{writing-mode:horizontal-tb;transform:none;height:auto;font-size:clamp(3rem,8vw,6rem)}
+
+  .bento{grid-template-columns:1fr 1fr}
+  .b-1,.b-2,.b-3,.b-4,.b-5,.b-6,.b-7,.b-8{grid-column:auto;grid-row:auto}
+  .b-2,.b-6{min-height:200px}
+
+  .modal-panel{padding:2rem}
+  .modal-progress{margin:-2rem -2rem 2rem}
+  footer{flex-direction:column;align-items:flex-start;gap:1.5rem}
+}
+
+@media(max-width:600px){
+  .kurzy-grid{grid-template-columns:1fr}
+  .lab-grid{grid-template-columns:1fr}
+  .bento{grid-template-columns:1fr}
+}
+
+/* Scroll animations */
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .8s ease,transform .8s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-left{opacity:0;transform:translateX(-30px);transition:opacity .8s ease,transform .8s ease}
+.reveal-left.visible{opacity:1;transform:translateX(0)}
+</style>
+</head>
+<body>
+
+<!-- CUSTOM CURSOR -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursor-ring"></div>
+
+<!-- LOGO -->
+<div class="logo">sanu<span>t</span>ice</div>
+
+<!-- DESKTOP NAV -->
+<nav class="nav" aria-label="Hlavní navigace">
+  <a class="nav-item active" href="#hero" data-section="hero">Úvod</a>
+  <a class="nav-item" href="#kurzy" data-section="kurzy">Kurzy</a>
+  <a class="nav-item" href="#atelier" data-section="atelier">Ateliér</a>
+  <a class="nav-item" href="#techniky" data-section="techniky">Techniky</a>
+  <a class="nav-item" href="#laborator" data-section="laborator">Laboratoř</a>
+  <a class="nav-item" href="#moduly" data-section="moduly">Moduly</a>
+  <a class="nav-item" href="#faq" data-section="faq">FAQ</a>
+  <a class="nav-item" href="#kontakt" data-section="kontakt">Kontakt</a>
+</nav>
+
+<!-- MOBILE TOGGLE -->
+<button class="menu-toggle" id="menuToggle" aria-label="Otevřít menu">
+  <span></span><span></span><span></span>
+</button>
+
+<!-- MOBILE NAV OVERLAY -->
+<div class="mobile-nav" id="mobileNav" role="dialog" aria-modal="true">
+  <a href="#hero" class="mobile-link">Úvod</a>
+  <a href="#kurzy" class="mobile-link">Kurzy líčení</a>
+  <a href="#atelier" class="mobile-link">Ateliér</a>
+  <a href="#techniky" class="mobile-link">Techniky</a>
+  <a href="#laborator" class="mobile-link">Laboratoř</a>
+  <a href="#moduly" class="mobile-link">Moduly</a>
+  <a href="#faq" class="mobile-link">FAQ</a>
+  <a href="#kontakt" class="mobile-link">Kontakt</a>
+</div>
+
+<main>
+
+<!-- ─────────────────────── HERO ─────────────────────── -->
+<section id="hero">
+  <div class="hero-left">
+    <div class="hero-meta">
+      <span>Praha, ČR</span>
+      <span>Vzdělávací studio</span>
+      <span>Est. 2018</span>
+    </div>
+    <div>
+      <h1 class="hero-title">
+        Umění<br>make-upu<br><em>odhaleno</em>
+      </h1>
+      <p class="hero-subtitle">
+        Profesionální vzdělávání<br>
+        v make-upové artistry
+      </p>
+      <div class="hero-anno">
+        <div class="hero-anno-line">Editoriální přístup ke kosmetickým technikám</div>
+        <div class="hero-anno-line">Ateliérová výuka s uměleckou precizností</div>
+        <div class="hero-anno-line">Individuální kurzy pro tvůrčí vizionáře</div>
+      </div>
+    </div>
+    <div class="hero-cta-card reveal" onclick="document.getElementById('kontakt').scrollIntoView({behavior:'smooth'})">
+      <p class="cta-label">Nezávazná konzultace</p>
+      <p class="cta-text">Zahajte svou cestu<br>k make-upové artistry</p>
+      <div class="cta-arrow">Domluvit konzultaci</div>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="hero-img-main makeup-bg-2">
+      <!-- editorial beauty photography placeholder -->
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <div style="position:absolute;inset:0;background:linear-gradient(160deg,rgba(200,176,156,.6) 0%,rgba(140,110,90,.8) 100%)"></div>
+        <!-- Artistic makeup brush illustration -->
+        <svg viewBox="0 0 400 600" style="position:absolute;width:80%;opacity:.15;bottom:-10%" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="200" cy="80" rx="30" ry="60" fill="#a07850"/>
+          <rect x="195" y="140" width="10" height="400" rx="5" fill="#8a6440"/>
+          <ellipse cx="200" cy="90" rx="18" ry="35" fill="#c9a878" opacity=".5"/>
+        </svg>
+        <!-- Powder circle decoration -->
+        <div style="position:absolute;bottom:20%;right:15%;width:200px;height:200px;border-radius:50%;border:1px solid rgba(160,120,80,.2)"></div>
+        <div style="position:absolute;bottom:18%;right:13%;width:240px;height:240px;border-radius:50%;border:1px solid rgba(160,120,80,.1)"></div>
+      </div>
+    </div>
+    <div class="hero-float-1">
+      <div class="hero-float-img makeup-bg-3" style="background:linear-gradient(135deg,#d4c4b4,#b0988a)">
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;opacity:.3">
+          <svg viewBox="0 0 100 80" width="80"><circle cx="30" cy="40" r="20" fill="#a07850"/><circle cx="70" cy="40" r="20" fill="#c4b0a0"/><circle cx="50" cy="25" r="15" fill="#d4b8a8"/></svg>
+        </div>
+      </div>
+      <p class="hero-float-caption">Barevná kompozice — ateliér</p>
+    </div>
+    <div class="hero-float-2">
+      <div class="hero-float-img" style="background:linear-gradient(135deg,#c8b4a4,#a48878)">
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;opacity:.25">
+          <svg viewBox="0 0 100 80" width="80"><ellipse cx="50" cy="50" rx="40" ry="20" fill="#6a4e38"/><rect x="46" y="10" width="8" height="45" rx="4" fill="#8a6848"/></svg>
+        </div>
+      </div>
+      <p class="hero-float-caption">Příprava štětcové techniky</p>
+    </div>
+    <div class="hero-overlay-text">sanutice</div>
+  </div>
+</section>
+
+<!-- ─────────────────────── KURZY LÍČENÍ ─────────────────────── -->
+<section id="kurzy">
+  <div class="kurzy-header">
+    <div>
+      <span class="section-label reveal">01 — Vzdělávání</span>
+      <div class="section-num">01</div>
+    </div>
+    <div>
+      <h2 class="kurzy-header-title reveal">Kurzy<br><em>líčení</em></h2>
+      <p class="kurzy-intro reveal">Každý kurz je navržen jako editoriální zkušenost — disciplinované studium kosmetické formy, aplikované s uměleckým záměrem.</p>
+    </div>
+  </div>
+
+  <div class="kurzy-grid">
+    <div class="k-block k-block-1 reveal">
+      <div class="k-img" style="aspect-ratio:4/3">
+        <div class="k-img-inner makeup-bg-1" style="aspect-ratio:4/3;display:flex;align-items:center;justify-content:center">
+          <svg viewBox="0 0 120 90" width="60" opacity=".2"><rect x="10" y="10" width="100" height="70" rx="2" fill="none" stroke="#6a4e38" stroke-width="1"/><line x1="10" y1="30" x2="110" y2="30" stroke="#6a4e38" stroke-width=".5"/><circle cx="60" cy="55" r="15" fill="#8a6848"/></svg>
+        </div>
+      </div>
+      <div class="k-content">
+        <span class="k-type">Základní</span>
+        <h3 class="k-name">Základy<br>make-upu</h3>
+        <p class="k-desc">Precizní ovládání nástrojů, porozumění pleti a základní technika aplikace.</p>
+        <span class="k-link">Zjistit více</span>
+      </div>
+    </div>
+
+    <div class="k-block k-block-2 reveal" style="transition-delay:.1s">
+      <div class="k-img" style="aspect-ratio:3/4">
+        <div class="k-img-inner makeup-bg-2" style="aspect-ratio:3/4;display:flex;align-items:flex-end;padding:2rem">
+          <div style="color:rgba(247,244,238,.6);font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;font-style:italic;line-height:1.2">Editoriální<br>líčení</div>
+        </div>
+      </div>
+      <div class="k-content">
+        <span class="k-type">Editoriální</span>
+        <h3 class="k-name">Editorial<br>make-up</h3>
+        <p class="k-desc">Tvorba obrazu pro módní fotografie, magazíny a umělecké projekty. Práce s formou a barvou na profesionální úrovni.</p>
+        <span class="k-link">Zjistit více</span>
+      </div>
+    </div>
+
+    <div class="k-block k-block-3 reveal" style="transition-delay:.15s">
+      <div class="k-img" style="aspect-ratio:4/3">
+        <div class="k-img-inner makeup-bg-3" style="aspect-ratio:4/3"></div>
+      </div>
+      <div class="k-content">
+        <span class="k-type">Večerní</span>
+        <h3 class="k-name">Večerní<br>techniky</h3>
+        <p class="k-desc">Dramaturgie světla a stínu pro sofistikované večerní příležitosti.</p>
+        <span class="k-link">Zjistit více</span>
+      </div>
+    </div>
+
+    <div class="k-block k-block-4 reveal" style="transition-delay:.2s">
+      <div class="k-img" style="aspect-ratio:4/3">
+        <div class="k-img-inner makeup-bg-4" style="aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;padding:1.5rem">
+          <svg viewBox="0 0 100 100" width="50" opacity=".3"><circle cx="50" cy="50" r="45" fill="none" stroke="#8a6848" stroke-width="1"/><circle cx="50" cy="50" r="20" fill="#c4a878"/><circle cx="25" cy="30" r="10" fill="#a07850"/><circle cx="75" cy="30" r="10" fill="#d4b888"/><circle cx="50" cy="75" r="8" fill="#b88860"/></svg>
+        </div>
+      </div>
+      <div class="k-content">
+        <span class="k-type">Kreativita</span>
+        <h3 class="k-name">Kreativní<br>barva</h3>
+        <p class="k-desc">Experimentální práce s pigmenty, vrstvení barev a avantgardní kompozice.</p>
+        <span class="k-link">Zjistit více</span>
+      </div>
+    </div>
+
+    <div class="k-block k-block-5 reveal" style="transition-delay:.25s">
+      <div class="k-img" style="aspect-ratio:4/3">
+        <div class="k-img-inner makeup-bg-5" style="aspect-ratio:4/3"></div>
+      </div>
+      <div class="k-content">
+        <span class="k-type">Ateliér</span>
+        <h3 class="k-name">Studiová<br>příprava</h3>
+        <p class="k-desc">Profesionální workflow, organizace workspace a etika spolupráce.</p>
+        <span class="k-link">Zjistit více</span>
+      </div>
+    </div>
+
+    <div class="k-block k-block-6 reveal" style="transition-delay:.3s">
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:2rem;align-items:center">
+        <div class="k-img" style="aspect-ratio:1">
+          <div class="k-img-inner makeup-bg-6" style="aspect-ratio:1"></div>
+        </div>
+        <div class="k-content" style="padding-top:0">
+          <span class="k-type">Artistry</span>
+          <h3 class="k-name">Kosmetická<br>artistry</h3>
+          <p class="k-desc">Pokročilé techniky pro zkušené umělce hledající vlastní vizuální jazyk.</p>
+          <span class="k-link">Zjistit více</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="k-block k-block-7 reveal" style="transition-delay:.35s">
+      <div style="background:var(--taupe);padding:3rem;height:100%;display:flex;flex-direction:column;justify-content:space-between">
+        <div>
+          <span class="k-type" style="color:var(--bronze-light)">Přizpůsobení</span>
+          <h3 class="k-name" style="color:var(--cream-text);font-size:clamp(1.5rem,3vw,2.5rem)">Individuální<br>program</h3>
+          <p class="k-desc" style="color:rgba(232,224,212,.5)">Kurz sestavený na míru vašim cílům, zkušenostem a rytmu vzdělávání.</p>
+        </div>
+        <span class="k-link" style="color:var(--bronze-light)">Domluvit konzultaci</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────── ATELIÉR ─────────────────────── -->
+<section id="atelier">
+  <div class="atelier-header">
+    <div>
+      <span class="section-label reveal">02 — Prostředí</span>
+      <h2 class="atelier-title reveal">Ateliér &amp;<br><em>výuka</em></h2>
+    </div>
+    <div class="atelier-count reveal">02</div>
+  </div>
+
+  <div class="atelier-scroll" id="atelierScroll">
+    <div class="atelier-card">
+      <div class="atelier-card-img">
+        <div class="atelier-card-img-inner makeup-bg-1" style="position:absolute;inset:0"></div>
+        <div style="position:absolute;bottom:1.5rem;left:1.5rem;z-index:2">
+          <span style="font-family:'Jost',sans-serif;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:rgba(247,244,238,.6);background:rgba(42,30,24,.4);padding:.3rem .8rem;backdrop-filter:blur(4px)">Studio Praha — Vinohrady</span>
+        </div>
+      </div>
+      <div class="atelier-card-caption">
+        <div class="atelier-card-num">01</div>
+        <h3 class="atelier-card-title">Příprava pracoviště</h3>
+        <div class="atelier-card-line"></div>
+        <p class="atelier-card-text">Každá lekce začíná rituálem uspořádání — přesné rozmístění nástrojů, organizace palety, vytvoření tvůrčího prostoru pro soustředěnou práci.</p>
+      </div>
+    </div>
+
+    <div class="atelier-card">
+      <div class="atelier-card-img">
+        <div class="atelier-card-img-inner makeup-bg-2" style="position:absolute;inset:0"></div>
+      </div>
+      <div class="atelier-card-caption">
+        <div class="atelier-card-num">02</div>
+        <h3 class="atelier-card-title">Umělecká praxe</h3>
+        <div class="atelier-card-line"></div>
+        <p class="atelier-card-text">Opakovaná praxe technik v bezpečném, inspirativním prostředí. Chyba jako součást tvůrčího procesu — nikoliv jako selhání.</p>
+      </div>
+    </div>
+
+    <div class="atelier-card">
+      <div class="atelier-card-img">
+        <div class="atelier-card-img-inner makeup-bg-4" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+          <svg viewBox="0 0 200 260" width="100" opacity=".2"><ellipse cx="100" cy="40" rx="40" ry="30" fill="#c4a878"/><rect x="93" y="70" width="14" height="160" rx="7" fill="#8a6848"/></svg>
+        </div>
+      </div>
+      <div class="atelier-card-caption">
+        <div class="atelier-card-num">03</div>
+        <h3 class="atelier-card-title">Atmosféra studia</h3>
+        <div class="atelier-card-line"></div>
+        <p class="atelier-card-text">Tichý, světlý prostor navržený k soustředění. Profesionální osvětlení, curated materiály, intimní skupiny studentů.</p>
+      </div>
+    </div>
+
+    <div class="atelier-card">
+      <div class="atelier-card-img">
+        <div class="atelier-card-img-inner makeup-bg-5" style="position:absolute;inset:0"></div>
+      </div>
+      <div class="atelier-card-caption">
+        <div class="atelier-card-num">04</div>
+        <h3 class="atelier-card-title">Proces učení</h3>
+        <div class="atelier-card-line"></div>
+        <p class="atelier-card-text">Metodologie vycházející z editoriální fotografie a módní artistry — vidět líčení jako vizuální jazyk, ne jako rutinu.</p>
+      </div>
+    </div>
+
+    <div class="atelier-card">
+      <div class="atelier-card-img">
+        <div class="atelier-card-img-inner makeup-bg-6" style="position:absolute;inset:0"></div>
+      </div>
+      <div class="atelier-card-caption">
+        <div class="atelier-card-num">05</div>
+        <h3 class="atelier-card-title">Tvůrčí sezení</h3>
+        <div class="atelier-card-line"></div>
+        <p class="atelier-card-text">Experimentální workshopy, kde studenti zkoumají vlastní estetický pohled prostřednictvím barvy, textury a formy.</p>
+      </div>
+    </div>
+
+    <div class="atelier-card">
+      <div class="atelier-card-img">
+        <div class="atelier-card-img-inner makeup-bg-7" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:2rem">
+          <svg viewBox="0 0 200 200" width="100" opacity=".2"><circle cx="100" cy="100" r="80" fill="none" stroke="#8a6848" stroke-width="1"/><circle cx="100" cy="100" r="40" fill="#c4a878"/><circle cx="60" cy="70" r="15" fill="#a07850"/><circle cx="140" cy="70" r="15" fill="#d4b888"/><circle cx="60" cy="130" r="12" fill="#b88860"/><circle cx="140" cy="130" r="12" fill="#c8a878"/></svg>
+        </div>
+      </div>
+      <div class="atelier-card-caption">
+        <div class="atelier-card-num">06</div>
+        <h3 class="atelier-card-title">Organizace materiálů</h3>
+        <div class="atelier-card-line"></div>
+        <p class="atelier-card-text">Péče o kosmetické nástroje jako umělecká disciplína — každý štětec, pigment a produkt má své místo a záměr.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────── TECHNIKY ─────────────────────── -->
+<section id="techniky">
+  <div class="techniky-left">
+    <div class="techniky-left-img" id="technikyImg">
+      <div style="position:absolute;inset:0;background:linear-gradient(160deg,#c4b4a4 0%,#8c7464 100%);display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <div style="position:absolute;bottom:10%;left:10%;font-family:'Cormorant Garamond',serif;font-size:6rem;font-weight:300;color:rgba(42,30,24,.08);line-height:1;pointer-events:none">技術</div>
+        <svg viewBox="0 0 300 400" width="200" style="opacity:.15;position:relative;z-index:1">
+          <ellipse cx="150" cy="60" rx="50" ry="45" fill="#a07850"/>
+          <rect x="143" y="105" width="14" height="260" rx="7" fill="#8a6440"/>
+          <ellipse cx="150" cy="75" rx="30" ry="28" fill="#c9a878" opacity=".5"/>
+          <ellipse cx="150" cy="55" rx="20" ry="18" fill="#d4b888" opacity=".4"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="techniky-right">
+    <div style="padding-bottom:2rem">
+      <span class="section-label">03 — Techniky</span>
+      <h2 style="font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,4vw,3.5rem);font-weight:300;color:var(--taupe);margin-top:.5rem;line-height:1.1">Techniky &amp;<br><em style="font-style:italic;color:var(--bronze)">kreativita</em></h2>
+    </div>
+
+    <div class="tech-divider"></div>
+
+    <div class="tech-module" onclick="this.classList.toggle('open')">
+      <div class="tech-module-bar"></div>
+      <span class="tech-module-num">T — 01</span>
+      <h3 class="tech-module-title">Příprava pleti &amp; základ</h3>
+      <p class="tech-module-text">Porozumění různým typům pleti, výběr vhodného základu, techniky nanesení pro přirozený i fotogenní výsledek. Práce s podkladem, korekcí a přípravou povrchu.</p>
+    </div>
+    <div class="tech-divider"></div>
+    <div class="tech-module" onclick="this.classList.toggle('open')">
+      <div class="tech-module-bar"></div>
+      <span class="tech-module-num">T — 02</span>
+      <h3 class="tech-module-title">Konturování &amp; světlo</h3>
+      <p class="tech-module-text">Sculptující techniky pro tvarování tváře pomocí světla a stínu. Pochopení anatomie tváře jako plastického materiálu — od přirozených po dramatické kompozice.</p>
+    </div>
+    <div class="tech-divider"></div>
+    <div class="tech-module" onclick="this.classList.toggle('open')">
+      <div class="tech-module-bar"></div>
+      <span class="tech-module-num">T — 03</span>
+      <h3 class="tech-module-title">Oční dramatika</h3>
+      <p class="tech-module-text">Komplexní oko — řasy, linky, stíny. Techniky blendování, precizní aplikace, vytváření depth a charakteru pohledu pro různé kontexty a styly.</p>
+    </div>
+    <div class="tech-divider"></div>
+    <div class="tech-module" onclick="this.classList.toggle('open')">
+      <div class="tech-module-bar"></div>
+      <span class="tech-module-num">T — 04</span>
+      <h3 class="tech-module-title">Barevná teorie v praxi</h3>
+      <p class="tech-module-text">Aplikace teorie barev na kosmetické kompozice. Komplementární palety, monochromatické koncepty, sezónní barevné systémy a jejich interpretace na různých tónech pleti.</p>
+    </div>
+    <div class="tech-divider"></div>
+    <div class="tech-module" onclick="this.classList.toggle('open')">
+      <div class="tech-module-bar"></div>
+      <span class="tech-module-num">T — 05</span>
+      <h3 class="tech-module-title">Fixace &amp; longevity</h3>
+      <p class="tech-module-text">Profesionální techniky zajištění trvanlivosti líčení — setting sprej, pudrové techniky, transparentní a pigmentové vrstvy pro různé podmínky a délky nošení.</p>
+    </div>
+    <div class="tech-divider"></div>
+    <div class="tech-module" onclick="this.classList.toggle('open')">
+      <div class="tech-module-bar"></div>
+      <span class="tech-module-num">T — 06</span>
+      <h3 class="tech-module-title">Editoriální finální look</h3>
+      <p class="tech-module-text">Přechod od techniky k umění — vytváření kohezního vizuálního obrazu, práce s fotografem, adaptace líčení pro různá světelná prostředí a média.</p>
+    </div>
+    <div class="tech-divider"></div>
+  </div>
+</section>
+
+<!-- ─────────────────────── VIZUÁLNÍ LABORATOŘ ─────────────────────── -->
+<section id="laborator">
+  <div class="lab-header reveal">
+    <div>
+      <span class="section-label" style="color:rgba(232,224,212,.3)">04 — Laboratoř</span>
+      <h2 class="lab-title">Vizuální<br><em>laboratoř</em></h2>
+    </div>
+    <p class="lab-sub">Tmavý prostor pro experimentaci s barvou, texturou a formou</p>
+  </div>
+
+  <div class="lab-grid reveal">
+    <div class="lab-block lab-block-1">
+      <div class="lab-block-inner lab-dark-1">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+          <svg viewBox="0 0 200 200" width="120" opacity=".3">
+            <circle cx="100" cy="100" r="70" fill="none" stroke="#c9a878" stroke-width=".5"/>
+            <circle cx="100" cy="100" r="40" fill="#8a5830" opacity=".6"/>
+            <circle cx="100" cy="100" r="15" fill="#c9a878" opacity=".8"/>
+          </svg>
+        </div>
+      </div>
+      <div class="lab-block-overlay">
+        <span class="lab-block-label">Pigment</span>
+        <h3 class="lab-block-title">Barevné<br>kompozice</h3>
+      </div>
+    </div>
+
+    <div class="lab-block lab-block-2">
+      <div class="lab-block-inner lab-dark-2">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding-right:10%">
+          <svg viewBox="0 0 300 200" width="200" opacity=".2">
+            <rect x="20" y="80" width="260" height="40" rx="20" fill="#c9a878"/>
+            <ellipse cx="150" cy="60" rx="100" ry="30" fill="#a07850" opacity=".6"/>
+            <ellipse cx="150" cy="100" rx="80" ry="15" fill="#d4b888" opacity=".4"/>
+          </svg>
+        </div>
+      </div>
+      <div class="lab-block-overlay">
+        <span class="lab-block-label">Studie textury</span>
+        <h3 class="lab-block-title">Vrstvení kosmetiky &amp; povrchová analýza</h3>
+      </div>
+    </div>
+
+    <div class="lab-block lab-block-3">
+      <div class="lab-block-inner lab-dark-3">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;padding-left:5%">
+          <div style="display:flex;gap:1rem;align-items:flex-end">
+            <div style="width:8px;background:#c9a878;height:120px;border-radius:4px;opacity:.4"></div>
+            <div style="width:8px;background:#a07850;height:80px;border-radius:4px;opacity:.4"></div>
+            <div style="width:8px;background:#d4b888;height:160px;border-radius:4px;opacity:.4"></div>
+            <div style="width:8px;background:#b88860;height:60px;border-radius:4px;opacity:.4"></div>
+            <div style="width:8px;background:#c9a878;height:100px;border-radius:4px;opacity:.4"></div>
+            <div style="width:8px;background:#8a6440;height:140px;border-radius:4px;opacity:.4"></div>
+            <div style="width:8px;background:#d4b888;height:90px;border-radius:4px;opacity:.4"></div>
+            <div style="width:8px;background:#a07850;height:110px;border-radius:4px;opacity:.4"></div>
+          </div>
+        </div>
+      </div>
+      <div class="lab-block-overlay">
+        <span class="lab-block-label">Demonstrace</span>
+        <h3 class="lab-block-title">Štětcové techniky &amp; práce s tlakem</h3>
+      </div>
+    </div>
+
+    <div class="lab-block lab-block-4">
+      <div class="lab-block-inner lab-dark-4">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+          <svg viewBox="0 0 200 200" width="120" opacity=".25">
+            <rect x="30" y="30" width="140" height="140" rx="4" fill="none" stroke="#c9a878" stroke-width=".5"/>
+            <rect x="50" y="50" width="100" height="100" rx="2" fill="#8a5830" opacity=".4"/>
+            <rect x="70" y="70" width="60" height="60" rx="1" fill="#c9a878" opacity=".6"/>
+          </svg>
+        </div>
+      </div>
+      <div class="lab-block-overlay">
+        <span class="lab-block-label">Kreativita</span>
+        <h3 class="lab-block-title">Nálady<br>&amp; koncepty</h3>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────── MAKE-UP ESTETIKA ─────────────────────── -->
+<section id="estetika">
+  <div class="estetika-bignum">05</div>
+  <span class="section-label reveal" style="display:block;margin-bottom:4rem">05 — Estetika</span>
+
+  <div class="estetika-content">
+    <div class="estetika-label-col reveal reveal-left">
+      <span class="estetika-v-label">Make-up jako jazyk</span>
+      <span class="estetika-v-label">Praha — 2025</span>
+      <span class="estetika-v-label">Sanutice Studio</span>
+    </div>
+    <div class="estetika-center reveal">
+      <blockquote class="estetika-quote">
+        „Líčení není maska —<br>je to <span>umělecká řeč</span>,<br>kterou hovoří kůže."
+      </blockquote>
+      <div class="estetika-img-strip">
+        <div style="position:absolute;inset:0;background:linear-gradient(90deg,#d4c0b0,#b89880,#c4aca0,#d0b8a8);opacity:.7"></div>
+      </div>
+      <p class="estetika-body">
+        Ve studiu sanutice přistupujeme ke vzdělávání make-upu jako k výtvarnému oboru. Každá technika nese estetický záměr. Každý kurz rozvíjí nejen dovednost, ale i vizuální myšlení. Naučíme vás vidět — a teprve pak tvořit.
+      </p>
+    </div>
+    <div class="estetika-right reveal">
+      <div class="estetika-stat">
+        <div class="estetika-stat-num">12+</div>
+        <div class="estetika-stat-label">let zkušeností</div>
+      </div>
+      <div class="estetika-stat">
+        <div class="estetika-stat-num">8</div>
+        <div class="estetika-stat-label">specializovaných kurzů</div>
+      </div>
+      <div class="estetika-stat">
+        <div class="estetika-stat-num">Praha</div>
+        <div class="estetika-stat-label">Vinohrady, Česká republika</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────── STUDIO MODULY ─────────────────────── -->
+<section id="moduly">
+  <div class="moduly-header">
+    <div>
+      <span class="section-label reveal">06 — Moduly</span>
+      <h2 class="moduly-title reveal">Studio<br><em>moduly</em></h2>
+    </div>
+    <p class="reveal" style="font-family:'Jost',sans-serif;font-weight:200;font-size:13px;color:var(--warm-grey);line-height:2;max-width:280px">Specializované studijní bloky sestavené do flexibilního vzdělávacího programu.</p>
+  </div>
+
+  <div class="bento reveal">
+    <div class="b b-1">
+      <span class="b-label">Základní modul</span>
+      <h3 class="b-title">Barevná kompozice</h3>
+      <p class="b-body">Teorie barev aplikovaná na kosmetické palety. Harmonické a kontrastní kombinace pro různé typy pleti.</p>
+      <span class="b-num">01</span>
+    </div>
+    <div class="b b-2">
+      <span class="b-label">Centrální praxe</span>
+      <h3 class="b-title">Příprava &amp; přesnost</h3>
+      <p class="b-body">Rituál přípravy studia. Hygiena nástrojů, organizace palety, mentální nastavení pro tvůrčí práci. Tento modul tvoří základ všeho ostatního.</p>
+      <span class="b-num">02</span>
+    </div>
+    <div class="b b-3">
+      <span class="b-label">Praxe</span>
+      <h3 class="b-title">Studio praxe</h3>
+      <p class="b-body">Soustředěné opakování technik s individuální zpětnou vazbou.</p>
+      <span class="b-num">03</span>
+    </div>
+    <div class="b b-4">
+      <span class="b-label">Detail</span>
+      <h3 class="b-title">Umělecký detail</h3>
+      <p class="b-body">Práce s přesností milimetru — linky, řasy, precizní přechody.</p>
+      <span class="b-num">04</span>
+    </div>
+    <div class="b b-5">
+      <span class="b-label">Štětce</span>
+      <h3 class="b-title">Štětcová technika</h3>
+      <p class="b-body">Správný výběr, tlak a pohyb pro každou část tváře. Blending jako umění.</p>
+      <span class="b-num">05</span>
+    </div>
+    <div class="b b-6">
+      <span class="b-label">Avantgarda</span>
+      <h3 class="b-title">Kreativní experimentace</h3>
+      <p class="b-body">Prostor pro testování vlastních vizuálních nápadů. Žádná pravidla — jen záměr a vědomé rozhodnutí. Tento modul je pro ty, kteří hledají vlastní estetický hlas.</p>
+      <span class="b-num">06</span>
+    </div>
+    <div class="b b-7">
+      <span class="b-label">Styling</span>
+      <h3 class="b-title">Editoriální styling &amp; kompozice obrazu</h3>
+      <p class="b-body">Spolupráce s fotografem, retuší a stylizací. Jak vytvořit konzistentní vizuální narativ od make-upu po finální obraz.</p>
+      <span class="b-num">07</span>
+    </div>
+    <div class="b b-8">
+      <span class="b-label">Textura</span>
+      <h3 class="b-title">Kosmetické textury</h3>
+      <p class="b-body">Matné, saténové, metalické povrchy. Práce se světlem a odrazem pro různé vizuální efekty.</p>
+      <span class="b-num">08</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────── FAQ ─────────────────────── -->
+<section id="faq">
+  <div class="faq-header">
+    <span class="section-label reveal">07 — Dotazy</span>
+    <h2 class="faq-title reveal">Často kladené<br><em>otázky</em></h2>
+  </div>
+
+  <div class="faq-sheets reveal">
+    <div class="faq-sheet" onclick="toggleFaq(this)">
+      <div class="faq-sheet-q">
+        <p class="faq-sheet-qtext">Jaká je délka jednotlivých kurzů?</p>
+        <div class="faq-sheet-icon">+</div>
+      </div>
+      <div class="faq-sheet-a"><p class="faq-sheet-ainner">Délka kurzů se liší podle obsahu a specializace. Základní kurzy trvají obvykle 4–6 sezení po 3 hodinách, pokročilé a editoriální programy jsou navrženy jako 8–12 sezení. Individuální programy jsou sestaveny přesně podle vašich potřeb a dostupnosti. Konkrétní harmonogram probereme při úvodní konzultaci.</p></div>
+    </div>
+    <div class="faq-sheet" onclick="toggleFaq(this)">
+      <div class="faq-sheet-q">
+        <p class="faq-sheet-qtext">Potřebuji předchozí zkušenosti s líčením?</p>
+        <div class="faq-sheet-icon">+</div>
+      </div>
+      <div class="faq-sheet-a"><p class="faq-sheet-ainner">Absolutně ne. Studio sanutice přijímá studenty na všech úrovních — od naprostých začátečníků po zkušené vizážisty hledající hlubší technické a umělecké vzdělání. Při přihlášení zjistíme vaši stávající úroveň a doporučíme nejvhodnější kurz nebo sestavíme individuální program.</p></div>
+    </div>
+    <div class="faq-sheet" onclick="toggleFaq(this)">
+      <div class="faq-sheet-q">
+        <p class="faq-sheet-qtext">Probíhají kurzy skupinově nebo individuálně?</p>
+        <div class="faq-sheet-icon">+</div>
+      </div>
+      <div class="faq-sheet-a"><p class="faq-sheet-ainner">Nabízíme obě varianty. Skupinové kurzy probíhají v malých skupinách maximálně 4–6 studentů, aby bylo zachováno intimní a soustředěné prostředí. Individuální lekce jsou přizpůsobeny plně vašemu tempu a cílům. Oba formáty probíhají v ateliéru na Vinohradech v Praze.</p></div>
+    </div>
+    <div class="faq-sheet" onclick="toggleFaq(this)">
+      <div class="faq-sheet-q">
+        <p class="faq-sheet-qtext">Jaké kosmetické vybavení si musím přinést?</p>
+        <div class="faq-sheet-icon">+</div>
+      </div>
+      <div class="faq-sheet-a"><p class="faq-sheet-ainner">Pro začátečnické kurzy poskytujeme veškeré potřebné vybavení přímo v ateliéru. Studenti, kteří již mají vlastní štětce a produkty, je mohou přinést. V průběhu kurzu vám poskytneme přehled doporučených nástrojů a produktů s ohledem na vaše potřeby a rozpočet.</p></div>
+    </div>
+    <div class="faq-sheet" onclick="toggleFaq(this)">
+      <div class="faq-sheet-q">
+        <p class="faq-sheet-qtext">Jak probíhá rezervace a platba?</p>
+        <div class="faq-sheet-icon">+</div>
+      </div>
+      <div class="faq-sheet-a"><p class="faq-sheet-ainner">Rezervace probíhá prostřednictvím úvodní konzultace — osobně nebo online — kdy společně zvolíme vhodný kurz a harmonogram. Podrobnosti o platebních podmínkách obdržíte po konzultaci. Upřednostňujeme přístup bez tlaku: nejprve se setkáme, pak se rozhodneme.</p></div>
+    </div>
+    <div class="faq-sheet" onclick="toggleFaq(this)">
+      <div class="faq-sheet-q">
+        <p class="faq-sheet-qtext">Vydáváte po absolvování certifikát?</p>
+        <div class="faq-sheet-icon">+</div>
+      </div>
+      <div class="faq-sheet-a"><p class="faq-sheet-ainner">Po úspěšném absolvování kurzu obdrží každý student osvědčení od studia sanutice potvrzující absolvování daného programu. Věříme však, že nejdůležitějším certifikátem je vaše portfolio a reálné dovednosti. Proto klademe důraz na praktický výstup a tvorbu vlastních prací.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────── KONTAKT ─────────────────────── -->
+<section id="kontakt">
+  <div class="kontakt-left reveal reveal-left">
+    <div class="kontakt-big-title">sanu<em>t</em>ice</div>
+  </div>
+  <div class="kontakt-meta reveal" style="transition-delay:.15s">
+    <span class="section-label">08 — Kontakt</span>
+    <div class="kontakt-meta-block" style="margin-top:2rem">
+      <p class="kontakt-meta-label">Adresa ateliéru</p>
+      <p class="kontakt-meta-val">Mánesova 48<br>120 00 Praha 2 — Vinohrady</p>
+      <p class="kontakt-meta-sub">Česká republika</p>
+    </div>
+    <div class="kontakt-meta-block">
+      <p class="kontakt-meta-label">Telefon</p>
+      <p class="kontakt-meta-val">+420 731 284 596</p>
+    </div>
+    <div class="kontakt-meta-block">
+      <p class="kontakt-meta-label">E-mail</p>
+      <p class="kontakt-meta-val">studio@sanutice.cz</p>
+    </div>
+    <div class="kontakt-meta-block">
+      <p class="kontakt-meta-label">Otevírací hodiny</p>
+      <p class="kontakt-meta-val">Po – Pá: 9:00 – 19:00</p>
+      <p class="kontakt-meta-sub">Sobota: 10:00 – 16:00 (dle dohody)</p>
+    </div>
+    <div class="kontakt-meta-block">
+      <p class="kontakt-meta-label">IČO</p>
+      <p class="kontakt-meta-val">08 394 712</p>
+      <p class="kontakt-meta-sub">Plátce DPH: CZ08394712</p>
+    </div>
+  </div>
+  <div class="kontakt-form reveal" style="transition-delay:.3s">
+    <h2 class="form-title">Zahajte<br><em>konzultaci</em></h2>
+    <div class="form-row">
+      <label class="form-label">Celé jméno</label>
+      <input type="text" class="form-input" placeholder="Jana Nováková">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Telefon</label>
+      <input type="tel" class="form-input" placeholder="+420 000 000 000">
+    </div>
+    <div class="form-row">
+      <label class="form-label">E-mail</label>
+      <input type="email" class="form-input" placeholder="vas@email.cz">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Preferovaný kurz</label>
+      <select class="form-select form-input">
+        <option value="" disabled selected>Vyberte kurz</option>
+        <option>Základy make-upu</option>
+        <option>Editorial make-up</option>
+        <option>Večerní techniky</option>
+        <option>Kreativní barva</option>
+        <option>Studiová příprava</option>
+        <option>Kosmetická artistry</option>
+        <option>Individuální program</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Úroveň zkušeností</label>
+      <select class="form-select form-input">
+        <option value="" disabled selected>Vaše zkušenosti</option>
+        <option>Začátečník — žádné zkušenosti</option>
+        <option>Mírně pokročilý</option>
+        <option>Pokročilý</option>
+        <option>Profesionál</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Preferovaný termín</label>
+      <input type="text" class="form-input" placeholder="Ranní / Odpolední / Víkend">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Zpráva</label>
+      <textarea class="form-textarea" placeholder="Řekněte nám o svých cílech a očekáváních…"></textarea>
+    </div>
+    <button class="form-submit" type="button">
+      <span>Odeslat dotaz</span>
+      <span class="form-submit-arrow"></span>
+    </button>
+  </div>
+</section>
+
+</main>
+
+<!-- ─────────────────────── FOOTER ─────────────────────── -->
+<footer>
+  <div class="footer-logo">sanu<span>t</span>ice</div>
+  <div class="footer-links">
+    <button class="footer-link" onclick="openModal('privacy')">Zásady ochrany osobních údajů</button>
+    <button class="footer-link" onclick="openModal('terms')">Podmínky užívání</button>
+    <a class="footer-link" href="#hero">↑ Zpět nahoru</a>
+  </div>
+  <span class="footer-copy">© 2025 Sanutice s.r.o. Všechna práva vyhrazena.</span>
+</footer>
+
+<!-- ─────────────────────── MODALS ─────────────────────── -->
+
+<!-- PRIVACY MODAL -->
+<div class="modal-backdrop" id="privacyModal" role="dialog" aria-modal="true" aria-label="Zásady ochrany osobních údajů">
+  <div class="modal-panel" id="privacyPanel">
+    <div class="modal-progress"><div class="modal-progress-bar" id="privacyProgress"></div></div>
+    <button class="modal-close" onclick="closeModal('privacy')">Zavřít ×</button>
+    <h2 class="modal-doc-title">Zásady ochrany<br>osobních údajů</h2>
+    <p class="modal-doc-subtitle">Sanutice s.r.o. — Platné od 1. ledna 2025 — Verze 2.4</p>
+
+    <div class="modal-section">
+      <h3 class="modal-h2">1. Správce osobních údajů</h3>
+      <p class="modal-p">Správcem osobních údajů je společnost Sanutice s.r.o., se sídlem Mánesova 48, 120 00 Praha 2, IČO: 08394712, zapsaná v obchodním rejstříku vedeném Městským soudem v Praze. Kontaktní e-mail pro záležitosti ochrany osobních údajů: gdpr@sanutice.cz.</p>
+    </div>
+
+    <div class="modal-section">
+      <h3 class="modal-h2">2. Rozsah zpracovávaných osobních údajů</h3>
+      <h4 class="modal-h3">2.1 Poptávkové a konzultační formuláře</h4>
+      <p class="modal-p">Při vyplnění kontaktního formuláře zpracováváme: jméno a příjmení, telefonní číslo, e-mailovou adresu, preferovaný kurz, úroveň zkušeností a preferovaný termín. Tyto údaje slouží výhradně k odpovědi na vaši poptávku a organizaci konzultace.</p>
+      <h4 class="modal-h3">2.2 Workshopy a kurzy</h4>
+      <p class="modal-p">Pro účastníky workshopů a kurzů zpracováváme dále: záznamy o absolvovaných kurzech a modulech, informace o zdravotních omezeních relevantních pro kosmetické procedury, fotografické záznamy z výukových sezení (pouze s výslovným souhlasem), platební údaje nezbytné pro fakturaci dle účetních předpisů.</p>
+      <h4 class="modal-h3">2.3 Cookies a technické údaje</h4>
+      <p class="modal-p">Webová stránka používá nezbytné technické cookies pro zajištění funkčnosti. Analytické cookies (Google Analytics 4) jsou aktivovány pouze s vaším souhlasem. Marketingové cookies nepoužíváme.</p>
+    </div>
+
+    <div class="modal-section">
+      <h3 class="modal-h2">3. Právní základ zpracování</h3>
+      <p class="modal-p">Osobní údaje zpracováváme na základě: (a) plnění smlouvy nebo předsmluvních opatření dle čl. 6 odst. 1 písm. b) GDPR; (b) oprávněného zájmu správce dle čl. 6 odst. 1 písm. f) GDPR; (c) vašeho souhlasu dle čl. 6 odst. 1 písm. a) GDPR, kde je vyžadován; (d) plnění právní povinnosti dle čl. 6 odst. 1 písm. c) GDPR (zejm. daňové a účetní předpisy).</p>
+    </div>
+
+    <div class="modal-section">
+      <h3 class="modal-h2">4. Doba uchovávání údajů</h3>
+      <h4 class="modal-h3">4.1 Kontaktní dotazy</h4>
+      <p class="modal-p">Osobní údaje z kontaktních formulářů, kde nedojde k uzavření smluvního vztahu, uchováváme po dobu 3 měsíců od zodpovězení dotazu, poté jsou nevratně smazány.</p>
+      <h4 class="modal-h3">4.2 Smluvní vztahy</h4>
+      <p class="modal-p">Údaje z uzavřených smluvních vztahů uchováváme po dobu 10 let od skončení smluvního vztahu v souladu s českými daňovými předpisy. Záznamy o absolvování kurzů uchováváme po dobu 5 let od vydání osvědčení.</p>
+      <h4 class="modal-h3">4.3 Fotografické záznamy</h4>
+      <p class="modal-p">Fotografické záznamy z výukových sezení jsou uchovávány pouze po dobu platnosti uděleného souhlasu. Souhlas lze kdykoli odvolat.</p>
+    </div>
+
+    <div class="modal-section">
+      <h3 class="modal-h2">5. Vaše práva</h3>
+      <p class="modal-p">Jako subjekt údajů máte právo na: přístup k osobním údajům, opravu nepřesných údajů, výmaz údajů („právo být zapomenut"), omezení zpracování, přenositelnost údajů, vznesení námitky proti zpracování a odvolání souhlasu. Žádosti zasílejte na gdpr@sanutice.cz. Na žádost odpovídáme do 30 dnů. Máte právo podat stížnost u Úřadu pro ochranu osobních údajů (ÚOOÚ), Pplk. Sochora 27, 170 00 Praha 7.</p>
+    </div>
+
+    <div class="modal-section">
+      <h3 class="modal-h2">6. Předávání údajů třetím stranám</h3>
+      <p class="modal-p">Osobní údaje neprodáváme ani nepředáváme třetím stranám za marketingovými účely. Údaje mohou být předány zpracovatelům zajišťujícím technický provoz (webhostingová společnost, e-mailový provider) na základě zpracovatelských smluv dle čl. 28 GDPR. Žádný z těchto zpracovatelů nemá sídlo mimo EHP.</p>
+    </div>
+
+    <div class="modal-section">
+      <h3 class="modal-h2">7. Zabezpečení osobních údajů</h3>
+      <p class="modal-p">Přijímáme technická a organizační opatření k ochraně vašich osobních údajů: šifrování přenosu dat (TLS/SSL), omezení přístupu k databázím na základě potřeby, pravidelné bezpečnostní audity systémů, interní školení zaměstnanců v oblasti ochrany dat.</p>
+    </div>
+
+    <div class="modal-section">
+      <h3 class="modal-h2">8. Kontakt a aktualizace</h3>
+      <p class="modal-p">Tyto zásady mohou být aktualizovány. O podstatných změnách budete informováni e-mailem (pokud jsme v kontaktu) nebo oznámením na webu. Datum poslední aktualizace: 1. ledna 2025. Kontakt: gdpr@sanutice.cz.</p>
+    </div>
+  </div>
+</div>
+
+<!-- TERMS MODAL -->
+<div class="modal-backdrop" id="termsModal" role="dialog" aria-modal="true" aria-label="Podmínky užívání">
+  <div class="modal-panel" id="termsPanel">
+    <div class="modal-progress"><div class="modal-progress-bar" id="termsProgress"></div></div>
+    <button class="modal-close" onclick="closeModal('terms')">Zavřít ×</button>
+    <h2 class="modal-doc-title">Podmínky<br>užívání</h2>
+    <p class="modal-doc-subtitle">Sanutice s.r.o. — Obchodní podmínky a podmínky účasti — Verze 3.1 — 2025</p>
+
+    <div class="modal-section">
+      <h3 class="modal-h2">1. Úvodní ustanovení</h3>
+      <p class="modal-p">Tyto podmínky užívání upravují vztah mezi společností Sanutice s.r.o. (dále jen „studio") a fyzickými osobami využívajícími webové stránky studio sanutice.cz a/nebo se účastnícími kurzů, workshopů a konzultací pořádaných studiem sanutice.</p>
+      <p class="modal-p">Přihlášením se ke kurzu nebo vyplněním kontaktního formuláře potvrzujete, že jste si tyto podmínky přečetli, porozuměli jim a souhlasíte s jejich zněním.</p>
+    </div>
+
+    <div class="modal-section">
+      <h3 class="modal-h2">2. Přihláška a rezervace místa</h3>
+      <h4 class="modal-h3">2.1 Rezervace</h4>
+      <p class="modal-p">Rezervace místa na kurzu nebo workshopu je závazná po potvrzení ze strany studia sanutice. Potvrzení obdržíte e-mailem do 3 pracovních dnů od odeslání přihlášky. Do doby potvrzení není rezervace závazná a místo není garantováno.</p>
+      <h4 class="modal-h3">2.2 Kapacita</h4>
+      <p class="modal-p">Maximální kapacita skupinových kurzů je stanovena s ohledem na kvalitu výuky. Studio si vyhrazuje právo odmítnout přihlášku, pokud je kapacita naplněna, nebo pokud zvolený kurz neodpovídá deklarované úrovni zkušeností účastníka.</p>
+    </div>
+
+    <div class="modal-section">
+      <h3 class="modal-h2">3. Průběh výuky a účast</h3>
+      <h4 class="modal-h3">3.1 Povinnosti účastníka</h4>
+      <p class="modal-p">Účastník se zavazuje: dodržovat stanovený harmonogram a být přítomen na začátku každé lekce, respektovat pracovní prostředí studia a ostatní účastníky, nakládat s vybavením studia s péčí a dle pokynů lektora, informovat studio o jakýchkoli zdravotních omezeních relevantních pro kosmetické techniky.</p>
+      <h4 class="modal-h3">3.2 Kosmetické materiály a bezpečnost</h4>
+      <p class="modal-p">Studio používá výhradně kosmetické produkty schválené pro profesionální použití v EU. Přesto si studio nepřejímá odpovědnost za individuální alergické reakce, které nebyly předem deklarovány účastníkem. Účastník je povinen informovat lektora o alergiích, citlivosti pleti nebo jiných zdravotních kontraindikacích před zahájením první lekce. V případě akutní reakce je k dispozici základní lékárnička; studio doporučuje účastníkům s citlivou pletí konzultaci s dermatologem před zahájením kurzu.</p>
+      <h4 class="modal-h3">3.3 Zameškané lekce</h4>
+      <p class="modal-p">Zameškané lekce je možné nahradit v jiném termínu dle dostupnosti, a to nejpozději do 60 dnů od původního termínu. Na náhradu není právní nárok; studio vynaloží přiměřené úsilí k jejímu umožnění.</p>
+    </div>
+
+    <div class="modal-section">
+      <h3 class="modal-h2">4. Storno podmínky</h3>
+      <p class="modal-p">Storno podmínky jsou platné pro všechny formy kurzů a workshopů: zrušení více než 14 dní před zahájením — vrácení plné platby; zrušení 7–14 dní před zahájením — vrácení 50 % platby; zrušení méně než 7 dní před zahájením — platba se nevrací. Studio si vyhrazuje právo zrušit nebo přesunout kurz z provozních důvodů; v takovém případě nabídne účastníkovi plnou náhradu nebo vrácení platby.</p>
+    </div>
+
+    <div class="modal-section">
+      <h3 class="modal-h2">5. Duševní vlastnictví a obsah</h3>
+      <h4 class="modal-h3">5.1 Výukové materiály</h4>
+      <p class="modal-p">Veškeré výukové materiály, metodiky, postupy a obsah kurzů jsou autorsky chráněny a jsou výhradním duševním vlastnictvím studia sanutice. Účastník je oprávněn materiály používat výhradně pro osobní vzdělávání. Šíření, kopírování, přeprodej nebo veřejné sdílení výukových materiálů je bez předchozího písemného souhlasu studia zakázáno.</p>
+      <h4 class="modal-h3">5.2 Fotografické záznamy z výuky</h4>
+      <p class="modal-p">Pořizování fotografií a videozáznamů v průběhu kurzu je povoleno výhradně pro osobní potřebu. Publikace na sociálních sítích nebo jiných médiích vyžaduje souhlas studia a případně zobrazených osob.</p>
+    </div>
+
+    <div class="modal-section">
+      <h3 class="modal-h2">6. Rozhodné právo a řešení sporů</h3>
+      <p class="modal-p">Tyto podmínky se řídí právem České republiky. Případné spory budou řešeny přednostně smírnou cestou. Pokud smírného řešení nebude dosaženo, je příslušný Obvodní soud pro Prahu 2. Spotřebitel má rovněž právo obrátit se na Českou obchodní inspekci jako orgán mimosoudního řešení sporů (www.coi.cz).</p>
+    </div>
+
+    <div class="modal-section">
+      <h3 class="modal-h2">7. Závěrečná ustanovení</h3>
+      <p class="modal-p">Studio sanutice si vyhrazuje právo tyto podmínky kdykoli měnit. Změny nabývají účinnosti zveřejněním na webové stránce. Pro kurzy zahájené před změnou platí podmínky platné v době uzavření smluvního vztahu. Datum poslední aktualizace: 1. ledna 2025.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// CUSTOM CURSOR
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX;my=e.clientY;
+  cursor.style.transform=`translate(${mx-4}px,${my-4}px)`;
+});
+function animateRing(){
+  rx+=(mx-rx-16)*.12;
+  ry+=(my-ry-16)*.12;
+  ring.style.transform=`translate(${rx}px,${ry}px)`;
+  requestAnimationFrame(animateRing);
+}
+animateRing();
+document.querySelectorAll('a,button,.k-block,.tech-module,.atelier-card,.lab-block,.faq-sheet,.b,.hero-cta-card').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cursor.style.transform+=` scale(2)`;ring.style.opacity='.5'});
+  el.addEventListener('mouseleave',()=>{cursor.style.transform=cursor.style.transform.replace(' scale(2)','');ring.style.opacity='1'});
+});
+
+// MOBILE NAV
+const toggle=document.getElementById('menuToggle');
+const mobileNav=document.getElementById('mobileNav');
+let mobileOpen=false;
+toggle.addEventListener('click',()=>{
+  mobileOpen=!mobileOpen;
+  if(mobileOpen){
+    mobileNav.style.display='flex';
+    requestAnimationFrame(()=>mobileNav.classList.add('open'));
+  } else {
+    mobileNav.classList.remove('open');
+    setTimeout(()=>mobileNav.style.display='none',500);
+  }
+});
+document.querySelectorAll('.mobile-link').forEach(a=>{
+  a.addEventListener('click',()=>{
+    mobileOpen=false;
+    mobileNav.classList.remove('open');
+    setTimeout(()=>mobileNav.style.display='none',500);
+  });
+});
+
+// ACTIVE NAV
+const sections=document.querySelectorAll('section[id]');
+const navItems=document.querySelectorAll('.nav-item');
+const observer=new IntersectionObserver(entries=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      navItems.forEach(n=>n.classList.remove('active'));
+      const active=document.querySelector(`.nav-item[data-section="${entry.target.id}"]`);
+      if(active)active.classList.add('active');
+    }
+  });
+},{threshold:.3});
+sections.forEach(s=>observer.observe(s));
+
+// REVEAL ON SCROLL
+const reveals=document.querySelectorAll('.reveal,.reveal-left');
+const revealObs=new IntersectionObserver(entries=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting)entry.target.classList.add('visible');
+  });
+},{threshold:.1});
+reveals.forEach(el=>revealObs.observe(el));
+
+// HORIZONTAL DRAG SCROLL
+const scroll=document.getElementById('atelierScroll');
+let isDown=false,startX,scrollLeft;
+scroll.addEventListener('mousedown',e=>{isDown=true;startX=e.pageX-scroll.offsetLeft;scrollLeft=scroll.scrollLeft});
+scroll.addEventListener('mouseleave',()=>isDown=false);
+scroll.addEventListener('mouseup',()=>isDown=false);
+scroll.addEventListener('mousemove',e=>{
+  if(!isDown)return;
+  e.preventDefault();
+  const x=e.pageX-scroll.offsetLeft;
+  scroll.scrollLeft=scrollLeft-(x-startX)*1.5;
+});
+
+// FAQ TOGGLE
+function toggleFaq(sheet){
+  const wasOpen=sheet.classList.contains('open');
+  document.querySelectorAll('.faq-sheet').forEach(s=>s.classList.remove('open'));
+  if(!wasOpen)sheet.classList.add('open');
+}
+
+// MODALS
+function openModal(type){
+  const backdrop=document.getElementById(type==='privacy'?'privacyModal':'termsModal');
+  backdrop.style.display='flex';
+  requestAnimationFrame(()=>backdrop.classList.add('open'));
+  document.body.style.overflow='hidden';
+  const panel=backdrop.querySelector('.modal-panel');
+  const progress=backdrop.querySelector('.modal-progress-bar');
+  panel.addEventListener('scroll',()=>{
+    const pct=(panel.scrollTop/(panel.scrollHeight-panel.clientHeight))*100;
+    progress.style.width=pct+'%';
+  });
+}
+function closeModal(type){
+  const backdrop=document.getElementById(type==='privacy'?'privacyModal':'termsModal');
+  backdrop.classList.remove('open');
+  setTimeout(()=>{backdrop.style.display='none';document.body.style.overflow=''},500);
+}
+document.querySelectorAll('.modal-backdrop').forEach(b=>{
+  b.addEventListener('click',e=>{
+    if(e.target===b){
+      if(b.id==='privacyModal')closeModal('privacy');
+      else closeModal('terms');
+    }
+  });
+});
+
+// PARALLAX HERO
+window.addEventListener('scroll',()=>{
+  const y=window.scrollY;
+  const heroLeft=document.querySelector('.hero-left');
+  const heroOverlay=document.querySelector('.hero-overlay-text');
+  if(heroLeft)heroLeft.style.transform=`translateY(${y*.15}px)`;
+  if(heroOverlay)heroOverlay.style.transform=`translateY(${y*.08}px)`;
+});
+
+// FORM SUBMIT
+document.querySelector('.form-submit').addEventListener('click',function(){
+  this.querySelector('span').textContent='Odesláno ✓';
+  this.style.color='var(--bronze)';
+  this.disabled=true;
+});
+</script>
+</body>
+</html>
